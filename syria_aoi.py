@@ -1,6 +1,6 @@
 #!/usr/bin/env python 
 
-import psycopg2, ppygis, zipfile, os, pprint, xlrd, csv, zipfile
+import psycopg2, ppygis, os, pprint, xlrd, csv, zipfile, ogr2ogr
 
 #DB connection properties
 
@@ -25,7 +25,7 @@ def main():
 	Name = 'OCHA_AOP_Nov2015'
 	fileName = Name + '.xlsx'
 	ExcelFile = os.path.join(os.getcwd(), fileName)
-	
+#	add script to extract shp from mdb
 	ochashp = "aoi_150928_shp.zip"
 	fullzip = os.getcwd() + '/' + ochashp
 #	os.system(os.getcwd() + "unzip " + ochashp + " -d " + os.getcwd())
@@ -42,16 +42,16 @@ def main():
 	
 	
 #	Excel2CSV(ExcelFile, 0) 
-	conn = psycopg2.connect(dbname = 'aoi', host= 'localhost', port= 5432, user = 'ds', password='A3a3ello')
+	conn = psycopg2.connect(dbname = 'aoi', host= 'localhost', port= 5432, user = 'ds', password='A3a3ello') # add this as raw input as well
 	cur = conn.cursor()  ## open a cursor
 
 	workbook = xlrd.open_workbook(ExcelFile)
 	worksheet = workbook.sheet_by_index(0)
-	pathcsv = os.path.join(os.getcwd(),'CSVFile.csv')
+	pathcsv = os.path.join(os.getcwd(),'CSVFile.csv') # clean this up!!! upload from memory in python to excel
 	csvfile = open(pathcsv, 'wb')
    	wr = csv.writer(csvfile, quoting=csv.QUOTE_ALL)
 	for rownum in xrange(worksheet.nrows):
-		date = worksheet.row_values(rownum)[7]
+		date = worksheet.row_values(rownum)[7] # change this to search through the header for the column with date in the name
 		if isinstance( date, float) or isinstance( date, int ):
 			year, month, day, hour, minute, sec = xlrd.xldate_as_tuple(date, workbook.datemode)
 			py_date = "%02d/%02d/%04d" % (month, day,year)
@@ -75,14 +75,14 @@ def main():
            """
 	with open(pathcsv, 'r') as f:
 		cur.copy_expert(sql=copy_sql, file=f)
-		conn.commit()
+#		conn.commit() commits
 
 
 #removes csv still needs to be reworked so csv never created i.e. load data direct from list.
 	os.remove(pathcsv)
 	cur.close()
 	cur = conn.cursor()  ## open a cursor
-	cur.execute("""DROP TABLE oti.aoiJOIN""") 
+	cur.execute("""DROP TABLE oti.aoiJOIN""")
 	cur.execute("""CREATE TABLE oti.aoiJOIN AS
 		SELECT 
     		sub.gid, 
@@ -99,7 +99,7 @@ def main():
 
 	cur.execute("""SELECT control FROM OTI.aoiJOIN LIMIT 10;""")
 #	cur.execute("""SELECT current_user;""")
-	conn.commit()
+#	conn.commit()
 
 			
 	records = cur.fetchall()
