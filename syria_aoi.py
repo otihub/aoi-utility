@@ -1,6 +1,6 @@
 #!/usr/bin/env python 
 
-import psycopg2, ppygis, os, pprint, xlrd, csv, zipfile, ogr2ogr
+import psycopg2, ppygis, os, pprint, xlrd, csv, zipfile, ogr, gdal, osr
 
 #DB connection properties
 
@@ -22,12 +22,12 @@ def unzip(source_filename, dest_dir):
 
 def main():
 		
-	Name = 'OCHA_AOP_Nov2015'
-	fileName = Name + '.xlsx'
+	oti_aoiname = 'oti_aoi'
+	fileName = oti_aoiname + '.xlsx'
 	ExcelFile = os.path.join(os.getcwd(), fileName)
 #	add script to extract shp from mdb
-	ochashp = "aoi_150928_shp.zip"
-	fullzip = os.getcwd() + '/' + ochashp
+	ochashp = "ocha_aoi.zip"
+	fullzip = os.getcwd() + '/source/' + ochashp
 #	os.system(os.getcwd() + "unzip " + ochashp + " -d " + os.getcwd())
 	unzip(fullzip, os.getcwd())
 	
@@ -38,7 +38,7 @@ def main():
 				shapefilename = str(member.filename)
 				print('shapefilename: ' +  shapefilename)
 				os.system("shp2pgsql -I -s 4326 "+ os.getcwd() + "/" + shapefilename + " OCHA.aoi | psql -d aoi")
-				os.system("rm " + shapfilename[:-4] + ".*")
+				os.system("rm " + shapefilename[:-4] + ".*")
 	
 	
 #	Excel2CSV(ExcelFile, 0) 
