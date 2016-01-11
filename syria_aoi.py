@@ -23,7 +23,7 @@ def unzip(source_filename, dest_dir):
 def main():
 		
 	oti_aoiname = 'oti_aoi'
-	fileName = oti_aoiname + '.xlsx'
+	fileName = 'source/' + oti_aoiname + '.xlsx'
 	ExcelFile = os.path.join(os.getcwd(), fileName)
 #	add script to extract shp from mdb
 	ochashp = "ocha_aoi.zip"
@@ -37,7 +37,7 @@ def main():
 			if str(member.filename)[-3:] == 'shp':
 				shapefilename = str(member.filename)
 				print('shapefilename: ' +  shapefilename)
-				os.system("shp2pgsql -I -s 4326 "+ os.getcwd() + "/" + shapefilename + " OCHA.aoi | psql -d aoi")
+				os.system("shp2pgsql -d -I -s 4326 "+ os.getcwd() + "/" + shapefilename + " OCHA.aoi | psql -d aoi")
 				os.system("rm " + shapefilename[:-4] + ".*")
 	
 	
