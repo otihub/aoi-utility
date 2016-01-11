@@ -15,6 +15,14 @@
         <Approximate>0</Approximate>
         <HistCounts>364182|122772</HistCounts>
       </HistItem>
+      <HistItem>
+        <HistMin>-0.25</HistMin>
+        <HistMax>1.25</HistMax>
+        <BucketCount>2</BucketCount>
+        <IncludeOutOfRange>0</IncludeOutOfRange>
+        <Approximate>1</Approximate>
+        <HistCounts>13439|6420</HistCounts>
+      </HistItem>
     </Histograms>
     <GDALRasterAttributeTable>
       <FieldDefn index="0">
@@ -46,7 +54,6 @@
     <Metadata>
       <MDI key="SourceBandIndex">0</MDI>
       <MDI key="STATISTICS_COVARIANCES">0.1885570712641797</MDI>
-      <MDI key="STATISTICS_EXCLUDEDVALUES"></MDI>
       <MDI key="STATISTICS_MAXIMUM">1</MDI>
       <MDI key="STATISTICS_MEAN">0.25212237706231</MDI>
       <MDI key="STATISTICS_MINIMUM">0</MDI>
