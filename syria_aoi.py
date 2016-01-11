@@ -1,6 +1,6 @@
 #!/usr/bin/env python 
 
-import psycopg2, ppygis, os, pprint, xlrd, csv, zipfile, ogr, gdal, osr
+import psycopg2, ppygis, os, pprint, xlrd, csv, zipfile, ogr, gdal, osr, pandas
 
 #DB connection properties
 
@@ -21,10 +21,13 @@ def unzip(source_filename, dest_dir):
 			zf.extract(member, path)
 
 def main():
-		
+	
+#	Get OTI data
+	
 	oti_aoiname = 'oti_aoi'
-	fileName = 'source/' + oti_aoiname + '.xlsx'
-	ExcelFile = os.path.join(os.getcwd(), fileName)
+	otidata =  pandas.read_file(os.path.join(os.getcwd(),'source/' + oti_aoiname + '.xlsx'), sheetname=0,header=0)
+
+	
 #	add script to extract shp from mdb
 	ochashp = "ocha_aoi.zip"
 	fullzip = os.getcwd() + '/source/' + ochashp
@@ -34,17 +37,13 @@ def main():
 	with zipfile.ZipFile(fullzip) as zf:
 		for member in zf.infolist():
 			print(member.filename) 
-			if str(member.filename)[-3:] == 'shp':
+			if  str(member.filename)[-3:] == '.shp':
 				shapefilename = str(member.filename)
 				print('shapefilename: ' +  shapefilename)
-				os.system("shp2pgsql -d -I -s 4326 "+ os.getcwd() + "/" + shapefilename + " OCHA.aoi | psql -d aoi")
-				os.system("rm " + shapefilename[:-4] + ".*")
 	
 	
 #	Excel2CSV(ExcelFile, 0) 
-	conn = psycopg2.connect(dbname = 'aoi', host= 'localhost', port= 5432, user = 'ds', password='A3a3ello') # add this as raw input as well
-	cur = conn.cursor()  ## open a cursor
-
+	
 	workbook = xlrd.open_workbook(ExcelFile)
 	worksheet = workbook.sheet_by_index(0)
 	pathcsv = os.path.join(os.getcwd(),'CSVFile.csv') # clean this up!!! upload from memory in python to excel
