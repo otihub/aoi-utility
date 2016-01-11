@@ -1,5 +1,5 @@
 # ignore everything in sources directory
-sources/
+sources/*
 
 # except this sub regions file
 !sources/sub_regions/
