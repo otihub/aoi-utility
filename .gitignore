@@ -1,3 +1,10 @@
 # ignore everything in sources directory
 sources/ignore
 
+# ignores ds_store files which are on mac computers
+
+**/.DS_Store
+
+# ignore swp files
+
+**/*.swp
