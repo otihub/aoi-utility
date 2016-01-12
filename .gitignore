@@ -1,5 +1,5 @@
 # ignore everything in sources directory
-sources/ignore
+sources/ignore/*
 
 # ignores ds_store files which are on mac computers
 
