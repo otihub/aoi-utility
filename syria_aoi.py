@@ -1,7 +1,10 @@
 #!/usr/bin/env python 
 
-import psycopg2, ppygis, os, pprint, xlrd, csv, zipfile, ogr, gdal, osr, pandas
-
+import os, zipfile, pandas
+from fiona import collection
+from fiona.rfc3339 import parse_date
+from shapely.geometry import shape, mapping
+from datetime import date 
 #DB connection properties
 
 #user = str(raw_input("User name: "))
@@ -20,91 +23,91 @@ def unzip(source_filename, dest_dir):
 				path = os.path.join(path, word)
 			zf.extract(member, path)
 
+def recode(control):
+	if control in ['Armed opposition groups and ANF','Non-state armed groups and ANF','Anti-ISIS Opposition Groups', 'Anti-ISIS (Moderate Opposition)']:
+		return 1
+	elif control in ['Contested','Contested Areas']:
+		return 2
+	elif control in ['Regime','Government (SAA)']:
+		return 3
+	elif control in ['ISIS-affiliated groups','ISIS']:
+		return 4
+	elif control in ['Kurdish', 'Kurdish Forces']:
+		return 5 
+	elif control in ['JAN']:
+		return 6 
+	else:
+		return 7
+
+
 def main():
 	
-#	Get OTI data
+#	Get OTI data as pandas data frame 
 	
-	oti_aoiname = 'oti_aoi'
-	otidata =  pandas.read_file(os.path.join(os.getcwd(),'source/' + oti_aoiname + '.xlsx'), sheetname=0,header=0)
+	oti_aoiname = 'oti_aoi.xlsx'
+	otidata =  pandas.read_excel(os.path.join(os.getcwd(),'source/ignore/' + oti_aoiname), sheetname=0,header=0)
+#	add code OTI data
+	
 
+#	Get sub regions shapefile with ogr
+
+	with collection('source/sub_regions/Sub_Regions.shp', 'r') as input:
+		schema = input.schema.copy()
+		# declare that the new shapefile will have
+		# new fields Date, Control.
+		schema['properties']['Updated'] = 'str'
+		schema['properties']['Control'] = 'str'
+		with collection(
+			'source/ignore/OTI_AOP.shp', 'w', 'ESRI Shapefile', schema) as output:
+			for poly in input:
+				print(int(poly['properties']['Nahia_Code']))
+				try:
+					otidata.loc[otidata['Nahia_Code'] == int(poly['properties']['Nahia_Code'])]
+					
+				# iterate through index and row in otidata 
+				except KeyError:
+							
+					#match uid in otidata to poly
+					print('keyerror')
+					poly['properties']['Updated'] = 'NULL'
+					poly['properties']['Control'] = 'NULL'
+				else:
+					print('matched')
+					#update properties from otidata NULL might not be right
+					poly['properties']['Updated'] = otidata.loc[otidata['Nahia_Code'] == int(poly['properties']['Nahia_Code'])]['Last_Update']
+					poly['properties']['Updated'] = otidata.loc[otidata['Nahia_Code'] == int(poly['properties']['Nahia_Code'])]['Control_Status']
+
+					
+				output.write({
+					'properties': poly['properties'],
+					'geometry': mapping(shape(poly['geometry']))
+				})
+	#	Merge sub regions .shp with OTI data pandas frame
+
+
+#	Export joined subregions w/ oti data to raster
+
+#	Bring in ocha aoi
+#		Extract from shp
+#			Extract shp from mbd
 	
+
 #	add script to extract shp from mdb
-	ochashp = "ocha_aoi.zip"
-	fullzip = os.getcwd() + '/source/' + ochashp
+	# ochashp = "ocha_aoi.zip"
+	# ochazip = os.getcwd() + '/source/ignore/' + ochashp
 #	os.system(os.getcwd() + "unzip " + ochashp + " -d " + os.getcwd())
-	unzip(fullzip, os.getcwd())
-	
-	with zipfile.ZipFile(fullzip) as zf:
-		for member in zf.infolist():
-			print(member.filename) 
-			if  str(member.filename)[-3:] == '.shp':
-				shapefilename = str(member.filename)
-				print('shapefilename: ' +  shapefilename)
-	
-	
-#	Excel2CSV(ExcelFile, 0) 
-	
-	workbook = xlrd.open_workbook(ExcelFile)
-	worksheet = workbook.sheet_by_index(0)
-	pathcsv = os.path.join(os.getcwd(),'CSVFile.csv') # clean this up!!! upload from memory in python to excel
-	csvfile = open(pathcsv, 'wb')
-   	wr = csv.writer(csvfile, quoting=csv.QUOTE_ALL)
-	for rownum in xrange(worksheet.nrows):
-		date = worksheet.row_values(rownum)[7] # change this to search through the header for the column with date in the name
-		if isinstance( date, float) or isinstance( date, int ):
-			year, month, day, hour, minute, sec = xlrd.xldate_as_tuple(date, workbook.datemode)
-			py_date = "%02d/%02d/%04d" % (month, day,year)
-			
-			wr.writerow( list(x.encode('utf-8') if type(x) == type(u'') else x for x in  [worksheet.row_values(rownum)[i] for i in [2,6]]) + [py_date] )
-		else:
-			wr.writerow(
-				list(x.encode('utf-8').strip() if type(x) == type(u'') else x.strip()
-					for x in worksheet.row_values(rownum)))
-	cur.execute("""DROP TABLE OTI.SRP_AOI""")
-	cur.execute("""CREATE TABLE OTI.SRP_AOI(    
-    	Nahia_Code integer,
-   		Control_Status text,
-   		Last_Update date
-	);""")
-
-	csvfile.close()
-	copy_sql = """
-           COPY oti.srp_aoi FROM stdin WITH CSV HEADER
-           DELIMITER as ','
-           """
-	with open(pathcsv, 'r') as f:
-		cur.copy_expert(sql=copy_sql, file=f)
-#		conn.commit() commits
+	# unzip(ochazip, os.getcwd())
 
 
-#removes csv still needs to be reworked so csv never created i.e. load data direct from list.
-	os.remove(pathcsv)
-	cur.close()
-	cur = conn.cursor()  ## open a cursor
-	cur.execute("""DROP TABLE oti.aoiJOIN""")
-	cur.execute("""CREATE TABLE oti.aoiJOIN AS
-		SELECT 
-    		sub.gid, 
-    		CAST (sub.nahia_id as int) AS sub_nahia,
-    		sub.mohafaza AS mohafaza,
-    		sub.mantika AS mantika,
-    		sub.nahia AS nahia,
-    		srp.Nahia_Code AS nahia_id,
-    		srp.Control_Status AS control,
-    		srp.Last_Update AS updated,
-    		sub.geom
-		FROM ocha.syria_sub sub
-		JOIN  oti.srp_aoi srp ON CAST (sub.nahia_id as int) = srp.Nahia_Code;""")
+#	Recode ocha shp
 
-	cur.execute("""SELECT control FROM OTI.aoiJOIN LIMIT 10;""")
-#	cur.execute("""SELECT current_user;""")
-#	conn.commit()
+#	Save ocha shp and raster
+
+#	Burn ocha and oti rasters together with oti data taking preeminence
+
 
 			
-	records = cur.fetchall()
-	print(records)
-
-
+		
 
 if __name__=="__main__":
 	main()
